@@ -1,12 +1,13 @@
 from kubernetes import client, config
 
-def connect():
-    config.load_kube_config()
-    return client.CoreV1Api()
+class KubeClient:
 
-def get_version():
-    config.load_kube_config()
+    def __init__(self):
+        config.load_kube_config()
 
-    version_api = client.VersionApi()
+        self.core = client.CoreV1Api()
 
-    return version_api.get_code()
+        self.version = client.VersionApi()
+    
+    def get_version(self):
+        return self.version.get_code()
