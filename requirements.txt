@@ -1,0 +1,3 @@
+kubernetes  #Kubernetes Python client
+typer       #CLI commands
+rich        #Makes terminal output beautiful
