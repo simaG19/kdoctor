@@ -1,22 +1,25 @@
 import typer
-from kdoctor.kube import connect, get_version
+from kdoctor.kube import KubeClient
 
 app = typer.Typer()
+
 @app.command()
-def cluster_info():
-
-    api = connect()
-
-    print("Connected to Kubernetes!")
-
 def version():
-
-    version = get_version()
-
-    print(f"Major: {version.major}")
-    print(f"Minor: {version.minor}")
+    kube = KubeClient()
+    version = kube.get_version()
+    # nodes = 
     print(f"Git Version: {version.git_version}")
-    print(f"Platform: {version.platform}")
+
+
+@app.command()
+def nodes():
+    kube = KubeClient()
+
+    nodes = kube.get_nodes()
+
+    for node in nodes.items:
+        print(node.metadata.name)
+
 
 if __name__ == "__main__":
     app()

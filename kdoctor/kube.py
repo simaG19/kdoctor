@@ -1,13 +1,16 @@
 from kubernetes import client, config
 
+
 class KubeClient:
 
     def __init__(self):
         config.load_kube_config()
 
         self.core = client.CoreV1Api()
+        self.version_api = client.VersionApi()
 
-        self.version = client.VersionApi()
-    
     def get_version(self):
-        return self.version.get_code()
+        return self.version_api.get_code()
+    
+    def get_nodes(self):
+        return self.core.list_node()
