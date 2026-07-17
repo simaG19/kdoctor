@@ -14,3 +14,6 @@ class KubeClient:
     
     def get_nodes(self):
         return self.core.list_node()
+    
+    def get_pods(self):
+        return self.core.list_pod_for_all_namespaces()
