@@ -61,7 +61,33 @@ def pods():
            table.add_row(pod_namespace,pod_name,pod_status)
        console.print(table)
 
+@app.command()
+def deployments():
+    kube = KubeClient()
+    deployments = kube.get_deployments() 
+    table = Table(title="Kubernetes Deployment Registry")
+     
+     # Deployment       ┃ Desired  ┃ Ready  ┃ Health  
+    table.add_column("Deployment", style="cyan", no_wrap=True)
+    table.add_column("Desired", style="cyan", no_wrap=True)
+    table.add_column("Ready", justify="center")
+    table.add_column("Health")
 
+    for deployment in deployments.items:
+        name= deployment.metadata.name
+        desired = deployment.spec.replicas or 0
+        ready = deployment.status.ready_replicas or 0
+    
+    
+        if desired == 0: 
+            health = "Scaled to 0"
+        elif ready == desired:
+            health = "Healthy"
+        else:
+            health = f"🔴 Degraded ({ready}/{desired})"
+        
+        table.add_row(name,str(desired), str(ready),health)
+    console.print(table)
 
 if __name__ == "__main__":
     app()
