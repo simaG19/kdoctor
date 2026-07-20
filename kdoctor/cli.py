@@ -140,5 +140,21 @@ def diagnose():
     else:
         console.print(f"[red]X {unhealthy_nodes} Node(s) Not Ready[/red]")
 
+    # Deployment check
+    deployments= kube.get_deployments()
+    unhealthy_deployments = 0
+    for deployment in deployments.items:
+        desired = deployment.spec.replicas or 0
+        ready = deployment.status.ready_replicas or 0
+        
+        if desired > ready:
+            unhealthy_deployments +=1
+            
+    if unhealthy_deployments == 0:
+        console.print("[green]✔[/green] Deployment Healthy")
+    else:
+        console.print(f"[red]X {unhealthy_deployments} Deployment(s) Not Ready[/red]")
+
+
 if __name__ == "__main__":
     app()
