@@ -114,8 +114,31 @@ def events():
     console.print(table)
 
 
+@app.command()
+def diagnose():
+    kube = KubeClient()
+    nodes = kube.get_nodes()
+    
+    console.print("Running cluster diagnostics...\n")
+    console.print("[green]✔[/green] Kubernetes API reachable")
+   
+    unhealthy_nodes = 0
+    
+    for node in nodes.items:
+        is_ready = False
+        for condition in node.status.conditions:
+            if condition.type == "Ready":
+                is_ready = (condition.status == "True")
+                break
+        
+        if not is_ready:
+            unhealthy_nodes += 1
 
-
+   
+    if unhealthy_nodes == 0:
+        console.print("[green]✔[/green] Nodes Healthy")
+    else:
+        console.print(f"[red]X {unhealthy_nodes} Node(s) Not Ready[/red]")
 
 if __name__ == "__main__":
     app()
