@@ -89,5 +89,33 @@ def deployments():
         table.add_row(name,str(desired), str(ready),health)
     console.print(table)
 
+@app.command()
+def events():
+    kube = KubeClient()
+    events = kube.get_events() 
+    table = Table(title="Kubernetes Events")
+     
+    table.add_column("Type", style="cyan", no_wrap=True)
+    table.add_column("Object", style="cyan", no_wrap=True)
+    table.add_column("Reason")
+    table.add_column("Message")
+
+    for event in events.items:
+        event_type = event.type
+        name= event.involved_object.name
+        reason= event.reason
+        message= event.message
+        if event_type == "Warning":
+            color ="red"
+        else:
+            color ="green"
+
+        table.add_row( f"[{color}]{event_type}[/{color}]",name,reason,message)
+    console.print(table)
+
+
+
+
+
 if __name__ == "__main__":
     app()

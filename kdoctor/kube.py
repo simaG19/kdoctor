@@ -20,3 +20,7 @@ class KubeClient:
         return self.core.list_pod_for_all_namespaces()
     def get_deployments(self):
         return self.apps.list_deployment_for_all_namespaces()
+    def get_services(self):
+        return self.core.list_service_for_all_namespaces()
+    def get_events(self):
+        return self.core.list_event_for_all_namespaces()
