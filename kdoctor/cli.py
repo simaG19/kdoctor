@@ -156,5 +156,18 @@ def diagnose():
         console.print(f"[red]X {unhealthy_deployments} Deployment(s) Not Ready[/red]")
 
 
+    #Pods Check
+    pods= kube.get_pods()
+    unhealthy_pods =0
+    for pod in pods.items:
+        if pod.status.phase not in ("Running", "Succeeded"):
+            unhealthy_pods +=1
+    if unhealthy_pods == 0:
+        console.print("[green]✔[/green] All Pods Running")
+    else:
+        console.print(f"[red]⚠ {unhealthy_pods} Pods Not Running[/red]")
+
+
+
 if __name__ == "__main__":
     app()
