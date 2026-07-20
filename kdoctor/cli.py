@@ -167,6 +167,23 @@ def diagnose():
     else:
         console.print(f"[red]⚠ {unhealthy_pods} Pods Not Running[/red]")
 
+    #Check events
+    events = kube.get_events()
+    recent_warnings = []
+
+    for event in events.items:
+        if event.type == "Warning":
+            recent_warnings.append(event.message)
+    
+    if len(recent_warnings) == 0:
+        console.print("[green]✔[/green] No Warning Events")
+    else:
+        console.print(f"[red]❌[/red] {len(recent_warnings)} Warning Events detected")
+    if recent_warnings:
+        console.print("\n[bold]Diagnosis:[/bold]")
+        console.print("Recent Warning Events suggest:")
+        console.print(f"  [yellow]{recent_warnings[-1]}[/yellow]")
+
 
 
 if __name__ == "__main__":
