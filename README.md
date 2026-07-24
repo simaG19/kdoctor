@@ -1,25 +1,36 @@
 # kdoctor 🩺
 
-`kdoctor` is a lightweight, terminal-based CLI diagnostic and inspection tool for Kubernetes clusters built with Python, [Typer](https://typer.tiangolo.com/), and [Rich](https://rich.readthedocs.io/).
+[![PyPI version](https://badge.fury.io/py/kdoctor.svg)](https://badge.fury.io/py/kdoctor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-It provides instant visibility into cluster resources (Nodes, Deployments, Pods, Events) and runs automated diagnostic checks to detect cluster issues and surface actionable recommendations.
+**`kdoctor`** is a lightweight, terminal-based CLI diagnostic and inspection tool for Kubernetes clusters built with Python, [Typer](https://typer.tiangolo.com/), and [Rich](https://github.com/Textualize/rich).
 
----
-
-## Features
-
-* **Cluster Inspection Tables:** View clean, color-coded tables for Nodes, Pods, Deployments, and Events.
-* **Automated Diagnostics (`diagnose`):** Performs a 5-point health check across your cluster:
-  1. API Reachability
-  2. Node Readiness
-  3. Deployment Replicas
-  4. Pod Execution Phases
-  5. Warning Event Detection
-* **Actionable Recommendations:** Aggregates discovered cluster issues and surfaces recent warning messages directly in your terminal.
+It provides instant visibility into cluster resources (**Nodes, Deployments, Pods, Events**) and runs automated diagnostic checks to detect cluster issues and surface actionable recommendations.
 
 ---
 
-### Prerequisites
+## ⚡ Features
 
-* Python 3.9+
-* A active `kubectl` context configured (e.g., `~/.kube/config` or active cluster session)
+* **Automated Diagnostics (`diagnose`):** Executes a 5-point cluster health check (API reachability, node readiness, deployment state, pod phases, and warning event detection).
+* **Targeted Resource Inspection:** Directly inspect single pods and deployments with recent log fetching and replica status.
+* **Rich Cluster Tables:** View clean, color-coded summaries for Nodes, Pods, Deployments, and Events across all namespaces.
+* **Actionable Recommendations:** Aggregates failures and outputs specific troubleshooting steps.
+
+---
+
+## 📋 Prerequisites
+
+Before running `kdoctor`, ensure you have:
+1. **Python 3.9 or higher** installed.
+2. An active Kubernetes configuration file (`~/.kube/config`) or environment variable (`KUBECONFIG`) set up to communicate with your target cluster (e.g., Minikube, EKS, GKE, AKS).
+
+---
+
+## 📦 Installation & Setup
+
+### Option 1: Install via PyPI (Recommended)
+
+You can install `kdoctor` directly from [PyPI](https://pypi.org/project/kdoctor/):
+
+```bash
+pip install kdoctor
