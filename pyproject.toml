@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kdoctor"  # The package name on PyPI
-version = "0.2.0"
+version = "0.3.0"
 description = "A lightweight CLI cluster health diagnostic tool for Kubernetes."
 readme = "README.md"
 authors = [
