@@ -1,0 +1,10 @@
+pyproject.toml
+kdoctor/__init__.py
+kdoctor/cli.py
+kdoctor/kube.py
+kdoctor.egg-info/PKG-INFO
+kdoctor.egg-info/SOURCES.txt
+kdoctor.egg-info/dependency_links.txt
+kdoctor.egg-info/entry_points.txt
+kdoctor.egg-info/requires.txt
+kdoctor.egg-info/top_level.txt

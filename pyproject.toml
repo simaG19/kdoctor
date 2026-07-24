@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kdoctor"  # The package name on PyPI
+version = "0.1.0"
+description = "A lightweight CLI cluster health diagnostic tool for Kubernetes."
+readme = "README.md"
+authors = [
+    { name = "Simon Wubshet" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "kubernetes>=28.0.0"
+]
+
+[project.scripts]
+kdoctor = "kdoctor.cli:app"  # This creates the 'kdoctor' shell command!
