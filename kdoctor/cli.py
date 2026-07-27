@@ -251,5 +251,17 @@ def diagnose():
         console.print("\n[bold green]✨ Cluster is fully healthy! No action required.[/bold green]")
 
 
+
+from kdoctor.security import run_security_scan
+
+@app.command()
+def security(
+    namespace: str = typer.Option(
+        None, "--namespace", "-n", help="Filter security scan by specific namespace"
+    )
+):
+    """Audit cluster workloads for root containers, missing resource limits, and :latest image tags."""
+    run_security_scan(namespace=namespace)
+    
 if __name__ == "__main__":
     app()
