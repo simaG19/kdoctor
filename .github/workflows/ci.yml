@@ -1,3 +1,4 @@
+
 name: CI Checks
 
 on:
@@ -24,13 +25,17 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build
+        pip install build pytest
         pip install -e .
+
+    - name: Run Tests
+      run: |
+        python -m pytest -v
 
     - name: Build Package Test
       run: |
         python -m build
 
-    - name: Test CLI Binary
+    - name: Test CLI Command
       run: |
         kdoctor --help
