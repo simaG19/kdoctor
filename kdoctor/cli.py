@@ -199,19 +199,50 @@ def diagnose():
     if unhealthy_deployments > 0:
         issues.append(f"{unhealthy_deployments} deployment(s) have unavailable replicas.")
 
-    #Pods Check
-    pods= kube.get_pods()
-    unhealthy_pods =0
+    
+    # Pods Check
+    pods = kube.get_pods()
+    unhealthy_pods = 0
     failing_pod_names = []
+
+    unhealthy_waiting_reasons = {
+        "CrashLoopBackOff",
+        "ImagePullBackOff",
+        "ErrImagePull",
+        "CreateContainerConfigError",
+        "CreateContainerError",
+        "RunContainerError",
+    }
+
     for pod in pods.items:
-        if pod.status.phase not in ("Running", "Succeeded"):
-            unhealthy_pods +=1
-            pod_name = pod.metadata.name
-            failing_pod_names.append(pod_name)
+        # First check the overall Pod phase
+        pod_is_unhealthy = pod.status.phase not in ("Running", "Succeeded")
+
+        # Then inspect individual container states
+        container_statuses = (
+            getattr(pod.status, "container_statuses", None) or []
+        )
+
+        for container_status in container_statuses:
+            container_state = getattr(container_status, "state", None)
+            waiting_state = getattr(container_state, "waiting", None)
+            waiting_reason = getattr(waiting_state, "reason", None)
+
+            if waiting_reason in unhealthy_waiting_reasons:
+                pod_is_unhealthy = True
+                break
+
+        if pod_is_unhealthy:
+            unhealthy_pods += 1
+            failing_pod_names.append(pod.metadata.name)
+
     if unhealthy_pods == 0:
         console.print("[green]✔[/green] All Pods Running")
     else:
-        console.print(f"[red]⚠ {unhealthy_pods} Pods Not Running[/red]")
+        console.print(
+            f"[red]⚠ {unhealthy_pods} unhealthy pod(s) detected[/red]"
+        )
+
     if unhealthy_pods > 0:
         issues.append("The cluster has unhealthy Pods.")
 
