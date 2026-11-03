@@ -1,4 +1,4 @@
-
+import pytest
 from kdoctor.ai.sanitizer import sanitize_data
 
 def collect_pod_evidence(pods):
@@ -102,8 +102,14 @@ def collect_node_evidence(nodes):
 def collect_event_evidence(events, limit=20):
     """Extract relevant warning events from Kubernetes."""
 
-    evidence = []
+    if (
+        not isinstance(limit, int)
+        or isinstance(limit, bool)
+        or limit < 0
+    ):
+        raise ValueError("limit must be a non-negative integer")
 
+    evidence = []
     warning_events = [
         event for event in events
         if getattr(event, "type", None) == "Warning"
@@ -111,13 +117,23 @@ def collect_event_evidence(events, limit=20):
 
     # Keep the most recent events when timestamps are available.
     def event_timestamp(event):
-        timestamp = (
-            getattr(event, "event_time", None)
-            or getattr(event, "last_timestamp", None)
-            or getattr(event, "first_timestamp", None)
-        )
-        return timestamp.timestamp() if timestamp else 0
+        series = getattr(event, "series", None)
+        metadata = getattr(event, "metadata", None)
 
+        timestamps = (
+            getattr(series, "last_observed_time", None),
+            getattr(event, "event_time", None),
+            getattr(event, "last_timestamp", None),
+            getattr(event, "first_timestamp", None),
+            getattr(metadata, "creation_timestamp", None),
+        )
+
+        timestamp = next(
+            (value for value in timestamps if value is not None),
+            None,
+        )
+
+        return timestamp.timestamp() if timestamp is not None else 0
     warning_events.sort(key=event_timestamp, reverse=True)
 
     for event in warning_events[:limit]:
@@ -164,27 +180,10 @@ def collect_cluster_evidence(kube, namespace=None, event_limit=20):
 
     raw_events = kube.get_events(namespace=namespace).items
 
-    if namespace is not None:
-        raw_events = [
-            event for event in raw_events
-            if (
-                getattr(
-                    getattr(event, "involved_object", None),
-                    "namespace",
-                    None,
-                ) == namespace
-            )
-        ]
-
     events = collect_event_evidence(
         raw_events,
         limit=event_limit,
     )
-    # events = collect_event_evidence(
-    #     kube.get_events().items,
-    #     limit=event_limit,
-    # )
-
     
 
     # Keep only unhealthy pods.
@@ -194,10 +193,12 @@ def collect_cluster_evidence(kube, namespace=None, event_limit=20):
         pod_is_unhealthy = pod["phase"] not in ("Running", "Succeeded")
 
         for container in pod["containers"]:
-            if container["waiting_reason"] in UNHEALTHY_WAITING_REASONS:
+            if (
+                not container["ready"]
+                or container["waiting_reason"] in UNHEALTHY_WAITING_REASONS
+            ):
                 pod_is_unhealthy = True
                 break
-
         if namespace is None or pod["namespace"] == namespace:
             if pod_is_unhealthy:
                 unhealthy_pods.append(pod)
@@ -231,23 +232,12 @@ def collect_cluster_evidence(kube, namespace=None, event_limit=20):
         if not node["ready"] or has_pressure:
             unhealthy_nodes.append(node)
 
-    # Apply namespace filtering to events.
-    filtered_events = [
-        event for event in events
-        if (
-            namespace is None
-            or (
-                event["resource"]
-                and event["resource"]["namespace"] == namespace
-            )
-        )
-    ]
-
+ 
     evidence = {
         "nodes": unhealthy_nodes,
         "deployments": unhealthy_deployments,
         "pods": unhealthy_pods,
-        "warning_events": filtered_events,
+        "warning_events": events,
     }
 
     return sanitize_data(evidence)

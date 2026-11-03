@@ -1,4 +1,4 @@
-
+import pytest
 from types import SimpleNamespace
 from kdoctor.ai.evidence import collect_node_evidence
 from kdoctor.ai.evidence import collect_pod_evidence
@@ -249,6 +249,50 @@ def test_collect_events_respects_limit():
     assert result[0]["reason"] == "Warning-4"
     assert result[1]["reason"] == "Warning-3"
 
+@pytest.mark.parametrize("limit", [-1, 1.5, "2", True])
+def test_collect_event_evidence_rejects_invalid_limit(limit):
+    with pytest.raises(
+        ValueError,
+        match="limit must be a non-negative integer",
+    ):
+        collect_event_evidence([], limit=limit)
+
+def test_collect_events_sorts_by_series_last_observed_time():
+    now = datetime.now(timezone.utc)
+
+    repeated_event = SimpleNamespace(
+        type="Warning",
+        reason="RepeatedWarning",
+        message="Container repeatedly failed",
+        count=5,
+        event_time=now,
+        last_timestamp=None,
+        first_timestamp=None,
+        series=SimpleNamespace(
+            last_observed_time=now + timedelta(minutes=10)
+        ),
+        involved_object=None,
+    )
+
+    recent_event = SimpleNamespace(
+        type="Warning",
+        reason="RecentWarning",
+        message="A more recent warning",
+        count=1,
+        event_time=now + timedelta(minutes=5),
+        last_timestamp=None,
+        first_timestamp=None,
+        series=None,
+        involved_object=None,
+    )
+
+    result = collect_event_evidence([
+        repeated_event,
+        recent_event,
+    ])
+
+    assert result[0]["reason"] == "RepeatedWarning"
+    assert result[1]["reason"] == "RecentWarning"
 
 def test_collect_event_evidence_with_empty_list():
     assert collect_event_evidence([]) == []
@@ -303,7 +347,13 @@ class FakeKubeClient:
         return SimpleNamespace(items=items)
 
 
-def make_test_pod(name, namespace, phase="Running", waiting_reason=None):
+def make_test_pod(
+    name,
+    namespace,
+    phase="Running",
+    waiting_reason=None,
+    container_ready=None,
+):
     waiting = (
         SimpleNamespace(
             reason=waiting_reason,
@@ -320,7 +370,11 @@ def make_test_pod(name, namespace, phase="Running", waiting_reason=None):
                 SimpleNamespace(
                     name="app",
                     restart_count=5,
-                    ready=waiting_reason is None,
+                    ready=(
+                        waiting_reason is None
+                        if container_ready is None
+                        else container_ready
+                    ),
                     state=SimpleNamespace(
                         waiting=waiting,
                         terminated=None,
@@ -342,6 +396,27 @@ def make_test_deployment(name, namespace, desired, ready):
         ),
     )
 
+def test_collect_cluster_evidence_includes_running_pods_with_unready_containers():
+    kube = FakeKubeClient(
+        pods=[
+            make_test_pod(
+                "unready-api",
+                "production",
+                phase="Running",
+                container_ready=False,
+            )
+        ]
+    )
+
+    result = collect_cluster_evidence(
+        kube,
+        namespace="production",
+    )
+
+    assert len(result["pods"]) == 1
+    assert result["pods"][0]["name"] == "unready-api"
+    assert result["pods"][0]["phase"] == "Running"
+    assert result["pods"][0]["containers"][0]["ready"] is False
 
 def make_test_node(name, ready, disk_pressure=False):
     conditions = [
