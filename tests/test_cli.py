@@ -260,3 +260,69 @@ def test_pods_command(monkeypatch):
     assert "staging" in result.output
     assert "Running" in result.output
     assert "Pending" in result.output
+
+def test_ai_diagnose_declined_by_user(monkeypatch):
+    from unittest.mock import Mock
+
+    mock_diagnose = Mock()
+
+    monkeypatch.setattr(
+        "kdoctor.cli.KubeClient",
+        Mock()
+    )
+
+    monkeypatch.setattr(
+        "kdoctor.cli.diagnose_cluster",
+        mock_diagnose,
+    )
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose"],
+        input="n\n",
+    )
+
+    assert result.exit_code != 0
+    assert "Send sanitized Kubernetes evidence to Google Gemini?" in result.output
+    mock_diagnose.assert_not_called()
+def test_ai_diagnose_accepted_by_user(monkeypatch):
+    from unittest.mock import Mock
+
+    mock_diagnose = Mock(return_value="No critical issues found.")
+
+    mock_kube = Mock()
+    mock_gemini = Mock()
+
+    class FakeGeminiClient:
+        def __enter__(self):
+            return mock_gemini
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    monkeypatch.setattr("kdoctor.cli.KubeClient", lambda: mock_kube)
+    monkeypatch.setattr("kdoctor.cli.GeminiClient", FakeGeminiClient)
+    monkeypatch.setattr("kdoctor.cli.diagnose_cluster", mock_diagnose)
+
+    result = runner.invoke(
+        app,
+        [
+            "ai",
+            "diagnose",
+            "--namespace",
+            "default",
+            "--event-limit",
+            "5",
+        ],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert "No critical issues found." in result.output
+
+    mock_diagnose.assert_called_once_with(
+        mock_kube,
+        mock_gemini,
+        namespace="default",
+        event_limit=5,
+    )

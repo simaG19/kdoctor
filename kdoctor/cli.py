@@ -2,7 +2,70 @@ import typer
 from rich.console import Console
 from rich.table import Table
 from kdoctor.kube import KubeClient
+from kdoctor.ai.diagnosis import diagnose_cluster
+from kdoctor.ai.gemini import (
+    GeminiClient,
+    GeminiConfigurationError,
+    GeminiRequestError,
+)
 app = typer.Typer()
+
+# AI-powered commands
+ai_app = typer.Typer(
+    help="AI-powered Kubernetes diagnosis commands."
+)
+
+# Register AI commands under the main CLI
+app.add_typer(ai_app, name="ai")
+@ai_app.command("diagnose")
+def ai_diagnose(
+    namespace: str | None = typer.Option(
+        None,
+        "--namespace",
+        "-n",
+        help="Kubernetes namespace to diagnose. Defaults to all namespaces.",
+    ),
+    event_limit: int = typer.Option(
+        20,
+        "--event-limit",
+        min=0,
+        help="Maximum number of warning events to collect.",
+    ),
+):
+    """Diagnose Kubernetes cluster issues using Google Gemini."""
+
+    scope = namespace if namespace else "all namespaces"
+
+    console.print(
+        f"\nKDoctor will collect sanitized diagnostic evidence from {scope}."
+    )
+    console.print(
+        f"Warning event limit: {event_limit}"
+    )
+
+    typer.confirm(
+        "Send sanitized Kubernetes evidence to Google Gemini?",
+        abort=True,
+    )
+
+    kube = KubeClient()
+
+    try:
+        with GeminiClient() as gemini_client:
+            result = diagnose_cluster(
+                kube,
+                gemini_client,
+                namespace=namespace,
+                event_limit=event_limit,
+            )
+
+        console.print("\n[bold green]AI Diagnosis[/bold green]\n")
+        console.print(result)
+
+    except (GeminiConfigurationError, GeminiRequestError) as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
 console = Console()
 
 @app.command()
