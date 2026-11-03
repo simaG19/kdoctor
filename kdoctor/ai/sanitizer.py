@@ -8,12 +8,23 @@ REDACTED = "[REDACTED]"
 SENSITIVE_KEY_PATTERN = re.compile(
     r"password|passwd|secret|token|api[_-]?key|"
     r"access[_-]?key|private[_-]?key|client[_-]?secret|"
-    r"authorization|credential",
+    r"authorization|credential|"
+    r"connection[_-]?string|database[_-]?url|"
+    r"aws[_-]?secret|github[_-]?token|"
+    r"ssh[_-]?key|refresh[_-]?token|"
+    r"client[_-]?id",
     re.IGNORECASE,
 )
 
 # Common sensitive values found in logs and configuration files.
 SENSITIVE_VALUE_PATTERNS = [
+    re.compile(
+        r"(?i)\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis)://"
+        r"[^\s/@:]+:[^\s/@]+@[^ \s]+"
+    ),
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,255}\b"),
+    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,255}\b"),
     re.compile(
         r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+"
     ),

@@ -95,3 +95,59 @@ def test_preserve_non_sensitive_values():
     result = sanitize_data(data)
 
     assert result == data
+
+def test_sanitize_cloud_and_database_credentials():
+    data = {
+        "AWS_SECRET_ACCESS_KEY": "aws-example-secret",
+        "AWS_SESSION_TOKEN": "aws-example-token",
+        "DATABASE_URL": "postgresql://user:password@host/db",
+        "DB_CONNECTION_STRING": "Server=localhost;Password=secret",
+        "GITHUB_TOKEN": "ghp-example-token",
+        "SSH_PRIVATE_KEY": "example-private-key",
+        "refresh_token": "example-refresh-token",
+        "client_id": "example-client-id",
+        "AWS_ACCESS_KEY_ID": "AKIAEXAMPLE123456",
+    }
+
+    sanitized = sanitize_data(data)
+
+    for key in data:
+        assert sanitized[key] == REDACTED
+
+
+def test_preserve_non_sensitive_cloud_configuration():
+    data = {
+        "AWS_REGION": "eu-west-1",
+        "GITHUB_USERNAME": "developer",
+        "DATABASE_HOST": "localhost",
+    }
+
+    sanitized = sanitize_data(data)
+
+    assert sanitized == data
+
+def test_sanitize_database_connection_string():
+    text = (
+        "Database connection failed: "
+        "postgresql://admin:MySecret123@db.internal:5432/app"
+    )
+
+    result = sanitize_text(text)
+
+    assert "MySecret123" not in result
+    assert "admin" not in result
+    assert REDACTED in result
+
+def test_sanitize_cloud_and_github_tokens_in_text():
+    text = (
+        "AWS key: AKIA1234567890ABCDEF "
+        "GitHub token: ghp_abcdefghijklmnopqrstuvwxyz "
+        "Fine-grained token: github_pat_abcdefghijklmnopqrstuvwxyz"
+    )
+
+    result = sanitize_text(text)
+
+    assert "AKIA1234567890ABCDEF" not in result
+    assert "ghp_abcdefghijklmnopqrstuvwxyz" not in result
+    assert "github_pat_abcdefghijklmnopqrstuvwxyz" not in result
+    assert result.count(REDACTED) == 3
