@@ -2,6 +2,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 from kdoctor.kube import KubeClient
+from rich.markdown import Markdown
 from kdoctor.ai.diagnosis import diagnose_cluster
 from kdoctor.ai.gemini import (
     GeminiClient,
@@ -61,7 +62,7 @@ def ai_diagnose(
             )
 
         console.print("\n[bold green]AI Diagnosis[/bold green]\n")
-        console.print(result)
+        console.print(Markdown(result))
     
 
     except (GeminiConfigurationError, GeminiRequestError) as exc:

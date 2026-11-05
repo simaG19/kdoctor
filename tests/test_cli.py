@@ -319,7 +319,7 @@ def test_ai_diagnose_accepted_by_user(monkeypatch):
 
     assert result.exit_code == 0
     assert "No critical issues found." in result.output
-
+    assert "AI Diagnosis" in result.output
     mock_diagnose.assert_called_once_with(
         mock_kube,
         mock_gemini,
