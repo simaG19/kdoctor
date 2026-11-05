@@ -326,3 +326,106 @@ def test_ai_diagnose_accepted_by_user(monkeypatch):
         namespace="default",
         event_limit=5,
     )
+
+def test_ai_diagnose_missing_api_key(monkeypatch):
+    from unittest.mock import Mock
+    from kdoctor.ai.gemini import GeminiConfigurationError
+
+    mock_diagnose = Mock()
+
+    def raise_configuration_error():
+        raise GeminiConfigurationError(
+            "Gemini API key not found. "
+            "Set the GEMINI_API_KEY environment variable."
+        )
+
+    monkeypatch.setattr("kdoctor.cli.KubeClient", Mock())
+    monkeypatch.setattr(
+        "kdoctor.cli.GeminiClient",
+        raise_configuration_error,
+    )
+    monkeypatch.setattr(
+        "kdoctor.cli.diagnose_cluster",
+        mock_diagnose,
+    )
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 1
+    assert "Gemini API key not found." in result.output
+    mock_diagnose.assert_not_called()
+
+def test_ai_diagnose_gemini_request_error(monkeypatch):
+    from unittest.mock import Mock
+    from kdoctor.ai.gemini import GeminiRequestError
+
+    mock_diagnose = Mock(
+        side_effect=GeminiRequestError(
+            "Gemini API request failed (HTTP 500): Internal server error"
+        )
+    )
+
+    mock_kube = Mock()
+    mock_gemini = Mock()
+
+    class FakeGeminiClient:
+        def __enter__(self):
+            return mock_gemini
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    monkeypatch.setattr(
+        "kdoctor.cli.KubeClient",
+        lambda: mock_kube,
+    )
+    monkeypatch.setattr(
+        "kdoctor.cli.GeminiClient",
+        FakeGeminiClient,
+    )
+    monkeypatch.setattr(
+        "kdoctor.cli.diagnose_cluster",
+        mock_diagnose,
+    )
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 1
+    assert "Gemini API request failed" in result.output
+    assert "Internal server error" in result.output
+    mock_diagnose.assert_called_once()
+
+def test_ai_diagnose_kubernetes_connection_error(monkeypatch):
+    from unittest.mock import Mock
+
+    mock_diagnose = Mock()
+
+    def raise_connection_error():
+        raise RuntimeError("Unable to connect to Kubernetes cluster")
+
+    monkeypatch.setattr(
+        "kdoctor.cli.KubeClient",
+        raise_connection_error,
+    )
+    monkeypatch.setattr(
+        "kdoctor.cli.diagnose_cluster",
+        mock_diagnose,
+    )
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 1
+    assert "Unable to connect to Kubernetes cluster" in result.output
+    mock_diagnose.assert_not_called()

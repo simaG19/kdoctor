@@ -48,9 +48,10 @@ def ai_diagnose(
         abort=True,
     )
 
-    kube = KubeClient()
+    
 
     try:
+        kube = KubeClient()
         with GeminiClient() as gemini_client:
             result = diagnose_cluster(
                 kube,
@@ -61,10 +62,16 @@ def ai_diagnose(
 
         console.print("\n[bold green]AI Diagnosis[/bold green]\n")
         console.print(result)
+    
 
     except (GeminiConfigurationError, GeminiRequestError) as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         raise typer.Exit(code=1)
+    except RuntimeError as exc:
+        console.print(f"[bold red]Kubernetes error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
 
 console = Console()
 
