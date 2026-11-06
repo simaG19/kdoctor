@@ -92,3 +92,37 @@ def test_close_releases_client():
     gemini.close()
 
     assert fake_client.closed is True
+
+def test_generate_text_gives_helpful_message_for_503():
+    import pytest
+    from unittest.mock import Mock
+    from google.genai import errors
+
+    from kdoctor.ai.gemini import (
+        GeminiClient,
+        GeminiRequestError,
+    )
+
+    mock_client = Mock()
+
+    mock_client.models.generate_content.side_effect = errors.APIError(
+        503,
+        {
+            "error": {
+                "code": 503,
+                "message": "This model is currently experiencing high demand.",
+                "status": "UNAVAILABLE",
+            }
+        },
+    )
+
+    gemini = GeminiClient(
+        api_key="test-api-key",
+        client=mock_client,
+    )
+
+    with pytest.raises(
+        GeminiRequestError,
+        match="temporarily overloaded",
+    ):
+        gemini.generate_text("Analyze this Kubernetes cluster.")

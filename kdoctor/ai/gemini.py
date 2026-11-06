@@ -48,10 +48,18 @@ class GeminiClient:
                 contents=prompt
             )
         except errors.APIError as exc:
-            raise GeminiRequestError(
+            message = (
                 f"Gemini API request failed "
                 f"(HTTP {exc.code}): {exc.message}"
-            ) from exc
+            )
+
+            if exc.code == 503:
+                message += (
+                    " Gemini is temporarily overloaded. "
+                    "Please wait a moment and try again."
+                    )
+
+            raise GeminiRequestError(message) from exc
 
         response_text = response.text
 
