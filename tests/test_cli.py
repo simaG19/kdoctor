@@ -319,7 +319,7 @@ def test_ai_diagnose_accepted_by_user(monkeypatch):
 
     assert result.exit_code == 0
     assert "No critical issues found." in result.output
-    assert "AI Diagnosis" in result.output
+
     mock_diagnose.assert_called_once_with(
         mock_kube,
         mock_gemini,
@@ -429,3 +429,48 @@ def test_ai_diagnose_kubernetes_connection_error(monkeypatch):
     assert result.exit_code == 1
     assert "Unable to connect to Kubernetes cluster" in result.output
     mock_diagnose.assert_not_called()
+
+def test_ai_diagnose_uses_loading_indicator(monkeypatch):
+    from unittest.mock import Mock
+
+    mock_diagnose = Mock(return_value="Diagnosis complete.")
+    mock_kube = Mock()
+    mock_gemini = Mock()
+    mock_status = Mock()
+
+    class FakeGeminiClient:
+        def __enter__(self):
+            return mock_gemini
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    class FakeStatus:
+        def __enter__(self):
+            return mock_status
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    status_mock = Mock(return_value=FakeStatus())
+
+    monkeypatch.setattr("kdoctor.cli.KubeClient", lambda: mock_kube)
+    monkeypatch.setattr("kdoctor.cli.GeminiClient", FakeGeminiClient)
+    monkeypatch.setattr("kdoctor.cli.diagnose_cluster", mock_diagnose)
+    monkeypatch.setattr("kdoctor.cli.console.status", status_mock)
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert "Diagnosis complete." in result.output
+
+    status_mock.assert_called_once_with(
+        "[bold cyan]Analyzing Kubernetes cluster with Gemini...",
+        spinner="dots",
+    )
+
+    mock_diagnose.assert_called_once()

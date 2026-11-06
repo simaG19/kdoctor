@@ -54,12 +54,16 @@ def ai_diagnose(
     try:
         kube = KubeClient()
         with GeminiClient() as gemini_client:
-            result = diagnose_cluster(
-                kube,
-                gemini_client,
-                namespace=namespace,
-                event_limit=event_limit,
-            )
+            with console.status(
+                "[bold cyan]Analyzing Kubernetes cluster with Gemini...",
+                spinner="dots",
+        ):
+                result = diagnose_cluster(
+                    kube,
+                    gemini_client,
+                    namespace=namespace,
+                    event_limit=event_limit,
+                )
 
         console.print("\n[bold green]AI Diagnosis[/bold green]\n")
         console.print(Markdown(result))
