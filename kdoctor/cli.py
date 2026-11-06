@@ -25,6 +25,13 @@ def ai_diagnose(
         "--namespace",
         "-n",
         help="Kubernetes namespace to diagnose. Defaults to all namespaces.",
+    ),   
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Save the AI diagnosis report to a Markdown file.",
+    
     ),
     event_limit: int = typer.Option(
         20,
@@ -67,6 +74,16 @@ def ai_diagnose(
 
         console.print("\n[bold green]AI Diagnosis[/bold green]\n")
         console.print(Markdown(result))
+
+        if output:
+            from pathlib import Path
+
+            report_path = Path(output)
+            report_path.write_text(result, encoding="utf-8")
+
+            console.print(
+            f"\n[bold green]Report saved to:[/bold green] {report_path}"
+            )
     
 
     except (GeminiConfigurationError, GeminiRequestError) as exc:

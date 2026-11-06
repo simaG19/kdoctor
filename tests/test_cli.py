@@ -474,3 +474,35 @@ def test_ai_diagnose_uses_loading_indicator(monkeypatch):
     )
 
     mock_diagnose.assert_called_once()
+
+def test_ai_diagnose_saves_markdown_report(tmp_path, monkeypatch):
+    from unittest.mock import Mock
+
+    report_path = tmp_path / "diagnosis.md"
+    diagnosis = "# Cluster Diagnosis\n\nNo critical issues found."
+
+    mock_diagnose = Mock(return_value=diagnosis)
+    mock_kube = Mock()
+    mock_gemini = Mock()
+
+    class FakeGeminiClient:
+        def __enter__(self):
+            return mock_gemini
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    monkeypatch.setattr("kdoctor.cli.KubeClient", lambda: mock_kube)
+    monkeypatch.setattr("kdoctor.cli.GeminiClient", FakeGeminiClient)
+    monkeypatch.setattr("kdoctor.cli.diagnose_cluster", mock_diagnose)
+
+    result = runner.invoke(
+        app,
+        ["ai", "diagnose", "--output", str(report_path)],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert report_path.exists()
+    assert report_path.read_text(encoding="utf-8") == diagnosis
+    assert "AI Diagnosis" in result.output
