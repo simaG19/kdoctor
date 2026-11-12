@@ -5,7 +5,6 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
   build:
     name: Build package distributions
@@ -46,6 +45,7 @@ jobs:
 
     environment:
       name: pypi
+      url: https://pypi.org/p/kdoctor
 
     permissions:
       id-token: write
